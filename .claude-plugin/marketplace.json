@@ -1,0 +1,6 @@
+{
+  "name": "laszloprekop-output-folders",
+  "description": "The output-folders mod for Claude Code.",
+  "owner": { "name": "laszloprekop" },
+  "plugins": [{ "name": "output-folders", "source": "./" }]
+}
