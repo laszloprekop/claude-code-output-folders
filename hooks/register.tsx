@@ -103,6 +103,28 @@ async function check($: EngineInterface) {
   await update($, checkedAt, () => at)
 }
 
+// Opens a folder or a link with the system's opener, since a terminal does
+// not always pass a hyperlink's click on.
+async function openTarget($: EngineInterface, target: string) {
+  try {
+    const ran = await $.process
+      .run(['open', target])
+      .catch(() => $.process.run(['xdg-open', target]))
+
+    if (ran.exitCode !== 0) {
+      $.ui.toast(`Could not open ${target}: ${ran.stderr.trim().split('\n')[0] ?? ''}`)
+    }
+  } catch {
+    $.ui.toast(`Could not open ${target}`)
+  }
+}
+
+// Keeps a long path's start and end.
+const fit = (text: string, room: number) =>
+  text.length <= room
+    ? text
+    : `${text.slice(0, Math.ceil((room - 1) / 2))}…${text.slice(text.length - Math.floor((room - 1) / 2))}`
+
 // Marks every folder's newest change as seen.
 async function markSeen($: EngineInterface) {
   const looked = new Map((await read($, checks)).map(one => [one.path, one.newestMs]))
@@ -144,7 +166,8 @@ export const register: Register = on => {
   })
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
-    const { Box, Button, Link, Text } = $.ui.resolve(e)
+    const { Box, Button, Text } = $.ui.resolve(e)
+    const room = Math.max(20, e.props.bodyColumns - 16)
     const list = await read($, folders)
     const looked = new Map((await read($, checks)).map(one => [one.path, one]))
     const at = await read($, checkedAt)
@@ -175,19 +198,30 @@ export const register: Register = on => {
           {at === 0 ? '' : `, checked ${clock(at)}`}
         </Text>
         {list.length === 0 ? <Text dimColor>Nothing has been written yet.</Text> : ''}
-        {list.map(folder => {
+        {list.length + urls.length === 0 ? (
+          ''
+        ) : (
+          <Text dimColor>Click a path or a link, or press its number, to open it.</Text>
+        )}
+        {list.map((folder, i) => {
           const now = looked.get(folder.path)
           const isChanged = (now?.newestMs ?? 0) > folder.seenMtimeMs
 
           return (
             <Box flexDirection="column">
-              <Text wrap="truncate-middle">
+              <Box>
                 <Text color="warning">{isChanged ? '● ' : '  '}</Text>
                 <Text color={KIND_COLOR[folder.kind]}>{folder.kind.padEnd(8)}</Text>
-                <Link href={`file://${encodeURI(folder.path)}`} label={shorten(folder.path, home)} />
-              </Text>
+                <Button
+                  key={`open-${i}`}
+                  plain
+                  hotkey={i < 9 ? String(i + 1) : undefined}
+                  label={fit(shorten(folder.path, home), room)}
+                  onPress={() => openTarget($, folder.path)}
+                />
+              </Box>
               <Text dimColor wrap="truncate-end">
-                {'          '}
+                {'             '}
                 {folder.writes} {folder.writes === 1 ? 'write' : 'writes'}, last by {folder.lastBy} at{' '}
                 {clock(folder.lastAt)}
                 {now === undefined
@@ -200,11 +234,17 @@ export const register: Register = on => {
           )
         })}
         {urls.length === 0 ? '' : <Text bold>Artifact links</Text>}
-        {urls.map(link => (
-          <Text wrap="truncate-end">
+        {urls.map((link, i) => (
+          <Box>
             <Text dimColor>{clock(link.at)} </Text>
-            <Link href={link.url} />
-          </Text>
+            <Button
+              key={`link-${i}`}
+              plain
+              hotkey={list.length + i < 9 ? String(list.length + i + 1) : undefined}
+              label={fit(link.url, room)}
+              onPress={() => openTarget($, link.url)}
+            />
+          </Box>
         ))}
       </Box>
     )

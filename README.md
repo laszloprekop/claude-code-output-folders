@@ -4,11 +4,16 @@ A mod for Claude Code. `/outputs` opens a pane that lists every folder the sessi
 scripts and agents wrote into, so each can be checked for changes.
 
 Each row shows the folder's kind (`temp`, `cache`, `public`, `config`, `project`, `other`), its
-path as a link, how many writes went there, which tool wrote last and when, how many files it
+path, how many writes went there, which tool wrote last and when, how many files it
 holds and its newest change. A `●` marks a folder that changed since it was marked seen. Artifact
 links published in the session are listed under the folders.
 
-Keys while the pane has focus: `r` refresh, `s` mark all seen, `c` clear the list, Esc close.
+A click on a path or a link opens it (the folder in the file manager, the link in the browser),
+and so does its number key, `1` to `9` from the top. The mod asks the system to open it (`open`,
+or `xdg-open`), so this does not depend on the terminal passing hyperlinks on.
+
+Other keys while the pane has focus: `r` refresh, `s` mark all seen, `c` clear the list, Esc
+close.
 
 ## What counts as a write
 

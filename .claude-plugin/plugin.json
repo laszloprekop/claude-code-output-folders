@@ -1,6 +1,6 @@
 {
   "name": "output-folders",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A pane listing the folders that tools, scripts and agents wrote into this session, with what changed in each.",
   "author": { "name": "laszloprekop" },
   "types": "./types/index.d.ts"

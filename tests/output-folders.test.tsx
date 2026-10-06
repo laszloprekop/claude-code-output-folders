@@ -60,6 +60,13 @@ test('the pane lists a written folder and marks it changed until seen', async ($
   }))
   on('tool.call', () => ({ result: { stdout: '', stderr: '' } }) as never)
 
+  const opened: string[] = []
+  on('process.run', (_, e) => {
+    opened.push(JSON.stringify(e))
+
+    return { value: { exitCode: 0, stdout: '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+  })
+
   await $.session.start({ cwd: CWD, surface: 'terminal', isInteractive: true })
   await $.tool.call({ tool: 'Bash', tool_use_id: 'c1', command: 'npm run build > /tmp/logs/build.log' })
   await $.command.run({
@@ -84,7 +91,10 @@ test('the pane lists a written folder and marks it changed until seen', async ($
     },
   })
 
-  expect(await pane.find({ type: 'Text', text: /temp\s+\/tmp\/logs/ })).toBeDefined()
+  expect((await pane.find({ key: 'open-0' }))?.props.label).toBe('/tmp/logs')
+
+  await pane.press({ key: 'open-0' })
+  expect(opened.join(' ')).toContain('"open","/tmp/logs"')
   expect(await pane.find({ type: 'Text', text: /1 folders, 1 changed/ })).toBeDefined()
   expect(await pane.find({ type: 'Text', text: /1 write, last by Bash/ })).toBeDefined()
 
